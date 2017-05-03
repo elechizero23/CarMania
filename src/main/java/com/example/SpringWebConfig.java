@@ -1,0 +1,102 @@
+package com.example;
+
+import java.util.ArrayList;
+import java.util.Locale;
+
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.accept.ContentNegotiationManager;
+import org.springframework.web.multipart.commons.CommonsMultipartResolver;
+import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.servlet.ViewResolver;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
+import org.springframework.web.servlet.i18n.SessionLocaleResolver;
+import org.springframework.web.servlet.view.ContentNegotiatingViewResolver;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
+import org.springframework.web.servlet.view.JstlView;
+
+import com.model.PdfViewResolver;
+
+@Configuration
+@EnableWebMvc
+@ComponentScan("com")
+public class SpringWebConfig extends WebMvcConfigurerAdapter {
+	
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/css/**").addResourceLocations("/static/css/");
+        registry.addResourceHandler("/img/**").addResourceLocations("/static/img/");
+        registry.addResourceHandler("/pdfs/**").addResourceLocations("/static/pdf/");
+        registry.addResourceHandler("/js/**").addResourceLocations("/static/js/");
+    }
+	@Bean(name = "multipartResolver")
+	public CommonsMultipartResolver resolver(){
+		CommonsMultipartResolver resolver = new CommonsMultipartResolver();
+		return resolver;
+	}
+	
+	@Bean
+	public InternalResourceViewResolver getInternalResourceViewResolver() {
+		InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+		resolver.setViewClass(JstlView.class);
+		resolver.setPrefix("/WEB-INF/views/jsp/");
+		resolver.setSuffix(".jsp");
+		
+		return resolver;
+	}
+	
+	// localization configuration
+	@Bean
+	public MessageSource messageSource() {
+		ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+		messageSource.setBasename("messages");
+		return messageSource;
+	}
+	
+	@Bean
+	public LocaleResolver localeResolver() {
+		SessionLocaleResolver resolver = new SessionLocaleResolver();
+		resolver.setDefaultLocale(Locale.ENGLISH);
+		return resolver;
+	}
+	
+	@Override
+	public void addInterceptors(InterceptorRegistry registry) {
+		LocaleChangeInterceptor changeInterceptor = new LocaleChangeInterceptor();
+		changeInterceptor.setParamName("language");
+		registry.addInterceptor(changeInterceptor);
+	}
+	
+	 /*
+     * Configure ContentNegotiatingViewResolver
+     */
+    @Bean
+    public ViewResolver contentNegotiatingViewResolver(ContentNegotiationManager manager) {
+        ContentNegotiatingViewResolver resolver = new ContentNegotiatingViewResolver();
+        resolver.setContentNegotiationManager(manager);
+
+        // Define all possible view resolvers
+        ArrayList<ViewResolver> resolvers = new ArrayList<>();
+
+        resolvers.add(getInternalResourceViewResolver());
+        resolvers.add(pdfViewResolver());
+
+        resolver.setViewResolvers(resolvers);
+        return resolver;
+    }
+
+    @Bean
+    public ViewResolver pdfViewResolver() {
+        return new PdfViewResolver();
+    }
+
+
+	
+}
